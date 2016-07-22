@@ -1,198 +1,56 @@
-<!doctype html>
-<html lang="en">
- <head>
-  <meta charset="UTF-8">
-  <meta name="Generator" content="EditPlus®">
-  <meta name="Author" content="">
-  <meta name="Keywords" content="">
-  <meta name="Description" content="">
-  <title>选择文字测试</title>
-  <script type="text/javascript" src="jquery-1.9.1.min.js"></script>
-  <script type="text/javascript" src="underscore.min.js"></script>
-  <style>
-    .highlighted-match {
-        background-color: #c9eb79;
-        cursor: pointer;
-        border-radius: 8px;
-        padding: 4px 3px 2px;
-        font-family: "Droid Sans Mono","Consolas","Monaco","Courier New",Courier,monospace;
-        line-height: 20px;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        width: 155px;
-    }
-  </style>
- </head>
- <body>
-    <div id="select-content">4月13日消息，据台湾媒体报道，32岁的孙燕姿(Sng Ee Tze)和这里拆入了一段测试后天将满34岁的荷兰籍印度尼西亚男友纳迪姆(Nadim Van Der Ros)交往5年，曾说过"有空就结婚"的她，果然趁着宣传期尾声，于3月31日在新加坡登记注册了！昨消息传开，她未否认，仅说会选择适当时间公布喜讯，所属"美妙音乐"则表示她个性低调，婚礼只会邀请双方亲友，也不会透露细节，但据新加坡可靠消息指出，婚宴订在5月初。</div>
-
-<button id="button">选中</button>
- <script type="text/javascript">
-
-    function getSelectionText (target) {
-        var windowSelection = window.getSelection();
-        var selectedText = windowSelection.getRangeAt(0).toString(),
-            rawText = target.text(),
-            startIndex = windowSelection.anchorOffset,
-            endIndex = windowSelection.focusOffset,
-            startIndexOf = rawText.indexOf(selectedText),
-            endIndexOf = startIndexOf + selectedText.length,
-            indexArray = target.data('indexs');
-        if (startIndex > endIndex) {
-            var tempStartIndex = startIndex;
-            startIndex = endIndex;
-            endIndex = tempStartIndex;
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="js/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="js/underscore.min.js"></script>
+    <link href="css/bootstrap.css" rel="stylesheet" type="text/css">
+    <title>文字选取</title>
+    <style>
+        .highlighted-match {
+            background-color: #c9eb79;
+            cursor: pointer;
+            border-radius: 8px;
+            padding: 4px 3px 2px;
+            font-family: "Droid Sans Mono","Consolas","Monaco","Courier New",Courier,monospace;
+            line-height: 20px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            width: 155px;
         }
-        if(startIndexOf === -1 || selectedText === ""){
-            return;
-        }
-
-        var index, startIndexTest = 0,
-            indices = [];
-        while ((index = rawText.indexOf(selectedText, startIndexTest)) > -1) {
-            indices.push(index);
-            startIndexTest = index + 1;
-        }
-        var i, j;
-        if (indices.length > 1) {
-            var endIndexArray = _.pluck(indexArray, 'endIndex'),
-                matchFound = false;
-            for (i = 0; i < indices.length; i++) {
-                if(matchFound) {
-                    break;
-                }
-                for(j = 0; j < endIndexArray.length; j++) {
-                    if(parseInt(indices[i], 10) !== parseInt(endIndexArray[j], 10) + startIndex) {
-                        continue;
-                    }
-                    startIndex = parseInt(indices[i], 10);
-                    endIndex = parseInt(indices[i], 10) + selectedText.length;
-                    matchFound = true;
-                }
-            }
-            if (startIndex < startIndexOf) {
-                startIndex = startIndexOf;
-                endIndex = endIndexOf;
-            }
-        }
-        else {
-            startIndex = startIndexOf;
-            endIndex = endIndexOf;
-        }
-
-        return ({
-            rawText: rawText,
-            selectedText: selectedText,
-            startIndex: startIndex,
-            endIndex: endIndex
-        });
-    }
-
-    function setHighlightedMatch (selectionTextObj, target) {
-        var indexArray = target.data('indexs') || [];
-        var selectIndexs = {'startIndex':selectionTextObj.startIndex,'endIndex':selectionTextObj.endIndex};
-        indexArray.push(selectIndexs);
-        target.data('indexs',indexArray);
-        renderHightlightText(selectionTextObj, target, indexArray);
-    }
-
-    function renderHightlightText (selectionTextObj, target, indexArray) {
-        indexArray = _.sortBy(indexArray, 'startIndex');
-        var lastEndIndex = 0;
-        var html = '';
-        for (var i = 0;i < indexArray.length ;i++ ){
-            var last = selectionTextObj.rawText.substring(lastEndIndex,indexArray[i].startIndex);
-            var current = selectionTextObj.rawText.substring(indexArray[i].startIndex,indexArray[i].endIndex);
-            var current = '<span class="highlighted-match">' + current + '</span>';
-            if (indexArray.length-1 == i) {
-                var next = selectionTextObj.rawText.substring(indexArray[i].endIndex);
-            }else {
-                var next = '';
-            }
-            
-            html += last + current + next;
-            lastEndIndex = indexArray[i].endIndex;
-        }
-        target.html(html);
-    }
-
-    function verifySelectField (selectionTextObj, target){
-        /*
-            选择状态:
-            0       正确
-            1       所选在已选之内
-            2       所选完全覆盖已有的
-            3       所选择的覆盖已有的,开头在外(left)，结尾在内
-            4       所选择的覆盖已有的,开头在内，结尾在外(right)
-            5       所选择的覆盖已有的,结尾在内，开始在外(left)
-            6       所选择的覆盖已有的,结尾在内，开始在外
-        */
-        var selectedState = 0;
-
-        var indexArray = target.data('indexs') || [];
-        if (indexArray.length == 0){
-            return selectedState;
-        }
-
-        for (var i = 0;i< indexArray.length;i++ ){
-            if (selectionTextObj.startIndex >= indexArray[i].startIndex 
-            && selectionTextObj.endIndex <= indexArray[i].endIndex) {
-                alert('哎呦我去，你选在了之前选过的上面');
-                selectedState = 1;
-                break;
-            }
-
-            if (selectionTextObj.startIndex < indexArray[i].startIndex 
-            && selectionTextObj.endIndex > indexArray[i].endIndex) {
-                alert('哎呦我去，你的选择包含了之前选过的');
-                selectedState = 2;
-                break;
-            }
-            
-            if (selectionTextObj.startIndex < indexArray[i].startIndex 
-            && (selectionTextObj.endIndex >= selectionTextObj.startIndex 
-            && selectionTextObj.endIndex <= indexArray[i].endIndex)) {
-                alert('哎呦我去，你的选择的开头在外，结尾在内');
-                selectedState = 3;
-                break;
-            }
-            
-            if ((selectionTextObj.startIndex >= selectionTextObj.startIndex 
-            && selectionTextObj.startIndex <= indexArray[i].endIndex) 
-            && selectionTextObj.endIndex > indexArray[i].endIndex) {
-                alert('哎呦我去，你的选择的开头在内，结尾在外');
-                selectedState = 4;
-                break;
-            }
-
-            if ((selectionTextObj.endIndex >= indexArray[i].startIndex 
-            && selectionTextObj.endIndex <= indexArray[i].endIndex) 
-            && selectionTextObj.startIndex < indexArray[i].startIndex) {
-                alert('哎呦我去，你的选择的结尾在内，开始在外');
-                selectedState = 5;
-                break;
-            }
-
-            if ((selectionTextObj.startIndex >= indexArray[i].startIndex 
-            && selectionTextObj.startIndex <= indexArray[i].endIndex) 
-            && selectionTextObj.endIndex > indexArray[i].endIndex) {
-                alert('哎呦我去，你的选择的开头在内，结尾在外');
-                selectedState = 6;
-                break;
-            }
-        }
-        return selectedState;
-    }
-
-     var oBtn = document.getElementById("button");
-    oBtn.onclick = function() {
-        var target = $('#select-content');
-        var selectionText = getSelectionText(target);
-        var selectedState = verifySelectField(selectionText, target);
-        if (selectedState == 0) {
-            setHighlightedMatch(selectionText, target);
-        }
-    };
- </script>
- </body>
+    </style>
+  </head>
+  
+  <body>
+    <div class="section">
+      <div class="container">
+        <div class="row">
+          <div class="col-md-12">
+            <div class="section">
+                <div id="select-content">4月13日消息，据台湾媒体报道，32岁的孙燕姿(Sng Ee Tze)和这里拆入了一段测试后天将满34岁的荷兰籍印度尼西亚男友纳迪姆(Nadim Van Der Ros)交往5年，曾说过"有空就结婚"的她，果然趁着宣传期尾声，于3月31日在新加坡登记注册了！昨消息传开，她未否认，仅说会选择适当时间公布喜讯，所属"美妙音乐"则表示她个性低调，婚礼只会邀请双方亲友，也不会透露细节，但据新加坡可靠消息指出，婚宴订在5月初。</div>
+            </div>
+            <div class="section">
+                <div>选中状态</div>
+                <code id="select_state">0</code><br/>
+                <code id="select_json"></code>
+            </div>
+            <div class="section">
+                <div>选中状态说明:</div>
+                <pre>
+                    选择状态:
+                    0       正确
+                    1       所选在已选之内
+                    2       所选完全覆盖已有的
+                    3       所选择的覆盖已有的,开头在外(left)，结尾在内
+                    4       所选择的覆盖已有的,开头在内，结尾在外(right)
+                    5       所选择的覆盖已有的,结尾在内，开始在外(left)
+                    6       所选择的覆盖已有的,结尾在内，开始在外
+                </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript" src="selecter.js"></script>
+  </body>
 </html>
